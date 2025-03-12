@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Funnest Game - Fast Tap Challenge</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <div class="intro-screen" id="intro-screen">
+            <h1>Fast Tap Challenge</h1>
+            <p>Tap the targets as quickly as possible!</p>
+            <button id="start-button">START GAME</button>
+            <div class="instructions">
+                <h2>How to Play</h2>
+                <p>Colorful targets will appear on screen. Tap or click them as fast as you can before they disappear!</p>
+                <p>The faster you tap, the higher your score. Miss too many and it's game over!</p>
+            </div>
+        </div>
+        
+        <div class="game-screen" id="game-screen">
+            <div class="hud">
+                <div class="score-container">Score: <span id="score">0</span></div>
+                <div class="time-container">Time: <span id="time">60</span>s</div>
+                <div class="lives-container">Lives: <span id="lives">3</span></div>
+            </div>
+            <canvas id="game-canvas"></canvas>
+        </div>
+        
+        <div class="game-over-screen" id="game-over-screen">
+            <h1>Game Over!</h1>
+            <div class="final-score">Final Score: <span id="final-score">0</span></div>
+            <div class="high-score">High Score: <span id="high-score">0</span></div>
+            <button id="restart-button">PLAY AGAIN</button>
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html>
