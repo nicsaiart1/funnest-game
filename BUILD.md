@@ -1,21 +1,19 @@
 # Build Documentation
 
-This document contains detailed instructions for building and developing the Funnest Game project.
+This document contains detailed instructions for building and developing the Fast Tap Challenge game project.
 
 ## Development Environment Setup
 
 ### Required Tools
 
-- [Tool 1 - e.g., Node.js v16+, Python 3.9+, Unity 2021.3, etc.]
-- [Tool 2]
-- [Additional tools...]
+- A modern web browser (Chrome, Firefox, Safari, Edge)
+- A text editor or IDE (Visual Studio Code, Sublime Text, etc.)
+- Basic knowledge of HTML, CSS, and JavaScript
+- Optional: Local development server (Python's http.server, Live Server VS Code extension, etc.)
 
 ### Environment Configuration
 
-```bash
-# Example environment setup commands
-[Any environment variables or configuration required]
-```
+No special environment configuration is needed as this is a pure HTML5/CSS/JavaScript application.
 
 ## Building from Source
 
@@ -26,69 +24,74 @@ git clone https://github.com/nicsaiart1/funnest-game.git
 cd funnest-game
 ```
 
-### Step 2: Install Dependencies
+### Step 2: Running the Game
+
+No build process is required. You can open the index.html file directly in your browser:
 
 ```bash
-[Command to install dependencies - e.g., npm install]
+# Option 1: Open directly
+open index.html  # macOS
+start index.html  # Windows
+xdg-open index.html  # Linux
+
+# Option 2: Use a local server (recommended for development)
+# Using Python 3:
+python -m http.server 8000
+
+# Using Node.js and npm:
+npx serve
 ```
 
-### Step 3: Build the Project
-
-```bash
-[Build command - e.g., npm run build, make, etc.]
-```
+When using a local server, open your browser and navigate to `http://localhost:8000` (or the port shown in your terminal).
 
 ## Development Workflow
 
-### Running in Development Mode
+### Making Changes
 
-```bash
-[Command to run in development mode - e.g., npm run dev]
-```
+1. Edit the HTML, CSS, or JavaScript files in your editor
+2. Refresh the browser to see your changes
+3. Use browser developer tools (F12 or Ctrl+Shift+I) to debug issues
 
-### Testing
+### Code Structure
 
-```bash
-[Command to run tests - e.g., npm test]
-```
+- `index.html` - Main HTML structure and game UI elements
+- `styles.css` - Styling and responsive design for the game
+- `game.js` - Core game logic and canvas rendering
 
-### Code Style and Linting
+## Performance Optimization
 
-This project follows [specific code style guidelines]. We use [linting tools] to maintain code quality.
+### Tips for Optimal Performance
 
-```bash
-[Command to run linter - e.g., npm run lint]
-```
+1. Keep the canvas size reasonable for the device
+2. Minimize DOM manipulations during gameplay
+3. Use requestAnimationFrame for smooth animations
+4. Clear parts of the canvas that change rather than the entire canvas when possible
+5. Test on various devices to ensure smooth performance
 
-## Deployment
+## Mobile Testing
 
-### Creating a Production Build
+### Touch Event Handling
 
-```bash
-[Command to create production build - e.g., npm run build:prod]
-```
+The game uses both mouse and touch events for cross-device compatibility. When testing:
 
-### Deployment Process
-
-[Briefly describe the deployment process or link to deployment documentation]
+1. Ensure touch events are working properly on mobile devices
+2. Test pinch-to-zoom is disabled correctly
+3. Validate that UI elements are appropriately sized for touch targets
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### Issue 1
+#### Game Runs Slowly on Mobile
 
-[Description of a common issue]
+**Solution:** Check if the canvas size is appropriate for the device. Reduce the number of simultaneous targets or effects.
 
-**Solution:** [Solution to the issue]
+#### Touch Events Not Working
 
-#### Issue 2
-
-[Description of another common issue]
-
-**Solution:** [Solution to the issue]
+**Solution:** Ensure event.preventDefault() is being called in your touch event handlers and that the passive option is set to false where needed.
 
 ## Additional Resources
 
-- [Resource 1]
-- [Resource 2]
+- [MDN Canvas API Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
+- [MDN Touch Events Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Touch_events)
+- [Google Web Fundamentals - Game Development](https://developers.google.com/web/fundamentals/game-development)
