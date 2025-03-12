@@ -19,6 +19,8 @@
                 <h2>How to Play</h2>
                 <p>Colorful targets will appear on screen. Tap or click them as fast as you can before they disappear!</p>
                 <p>The faster you tap, the higher your score. Miss too many and it's game over!</p>
+                <p>Chain hits together quickly to build combos for bonus points!</p>
+                <p>Look out for special targets and power-ups to enhance your game!</p>
             </div>
         </div>
         
@@ -28,6 +30,12 @@
                 <div class="time-container">Time: <span id="time">60</span>s</div>
                 <div class="lives-container">Lives: <span id="lives">3</span></div>
             </div>
+            <div class="combo-display" id="combo-display">
+                <span id="combo-count">0</span>x Combo
+            </div>
+            <div class="power-up-display" id="power-up-display">
+                <!-- Active power-ups will appear here -->
+            </div>
             <canvas id="game-canvas"></canvas>
         </div>
         
@@ -35,6 +43,7 @@
             <h1>Game Over!</h1>
             <div class="final-score">Final Score: <span id="final-score">0</span></div>
             <div class="high-score">High Score: <span id="high-score">0</span></div>
+            <div class="max-combo">Max Combo: <span id="max-combo">0</span>x</div>
             <button id="restart-button">PLAY AGAIN</button>
         </div>
     </div>
