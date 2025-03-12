@@ -90,11 +90,18 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize the game
     function init() {
-        // Set up canvas size
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+        console.log("Init function called");
+        
+        // Set canvas to a reasonable default size for now
+        canvas.width = 800;
+        canvas.height = 600;
+        
+        // Make canvas visible
+        canvas.style.display = 'block';
+        canvas.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
         
         // Set up event listeners
+        window.addEventListener('resize', resizeCanvas);
         startButton.addEventListener('click', startGame);
         restartButton.addEventListener('click', restartGame);
         
@@ -104,20 +111,51 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Display high score
         highScoreElement.textContent = highScore;
+        
+        console.log("Init complete - Canvas:", canvas.width, canvas.height);
     }
     
     // Resize canvas to fit container
     function resizeCanvas() {
+        // Make the game screen temporarily visible if it's not already
+        const wasHidden = getComputedStyle(gameScreen).display === 'none';
+        if (wasHidden) {
+            gameScreen.style.visibility = 'hidden'; // Hide visually but keep layout
+            gameScreen.style.display = 'block';     // Make it affect layout
+        }
+        
         const container = gameScreen;
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+        console.log("Resizing canvas. Container display:", getComputedStyle(container).display);
+        console.log("Container dimensions:", container.clientWidth, container.clientHeight);
+        
+        // Set canvas dimensions
+        canvas.width = container.clientWidth || 800;
+        canvas.height = container.clientHeight || 600;
+        
+        console.log("New canvas dimensions:", canvas.width, canvas.height);
+        
+        // If we temporarily made it visible, hide it again
+        if (wasHidden) {
+            gameScreen.style.display = 'none';
+            gameScreen.style.visibility = 'visible';
+        }
+        
+        // Redraw any existing targets if the game is active
+        if (gameActive && ctx) {
+            drawGameElements();
+        }
     }
     
     // Start the game
     function startGame() {
+        console.log("Game started");
+        
         introScreen.style.display = 'none';
         gameScreen.style.display = 'block';
         gameOverScreen.style.display = 'none';
+        
+        // Make sure the canvas is properly sized now that gameScreen is visible
+        resizeCanvas();
         
         // Reset game state
         gameActive = true;
@@ -151,10 +189,12 @@ document.addEventListener('DOMContentLoaded', () => {
         livesElement.textContent = lives;
         timeElement.textContent = timeRemaining;
         
-        // Start game loop
+        // Stop any existing game loop
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
         }
+        
+        // Start game loop
         lastTimestamp = performance.now();
         animationFrameId = requestAnimationFrame(gameLoop);
         
@@ -176,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Start spawning targets
         spawnTarget();
+        console.log("Initial target spawned", targets.length > 0 ? targets[0] : "No targets");
         targetAppearInterval = setInterval(spawnTarget, 1000);
         
         // Start spawning power-ups occasionally
@@ -237,9 +278,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
+        // Make sure we're not placing targets outside the canvas
+        const canvasWidth = canvas.width || 800;
+        const canvasHeight = canvas.height || 600;
+        
+        // Create the target at a valid position within the canvas
         const target = {
-            x: Math.random() * (canvas.width - radius * 2) + radius,
-            y: Math.random() * (canvas.height - radius * 2) + radius,
+            x: Math.random() * (canvasWidth - radius * 2) + radius,
+            y: Math.random() * (canvasHeight - radius * 2) + radius,
             radius: radius,
             color: targetType === TARGET_TYPES.BONUS ? '#FFD700' : targetColors[Math.floor(Math.random() * targetColors.length)],
             createdAt: performance.now(),
@@ -257,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         targets.push(target);
+        console.log("Target spawned:", target);
         
         // Spawn additional targets based on difficulty
         if (Math.random() < difficultyLevel * 0.1) {
@@ -628,13 +675,155 @@ document.addEventListener('DOMContentLoaded', () => {
         animatePopup();
     }
     
+    // Draw all game elements (separate from gameLoop for clarity)
+    function drawGameElements() {
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw debug grid for visibility
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 50) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 50) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+        
+        const now = performance.now();
+        
+        // Draw targets
+        targets.forEach(target => {
+            if (target.hit) return; // Skip hit targets
+            
+            const elapsedTime = now - target.createdAt;
+            const timeRatio = 1 - (elapsedTime / target.lifetime);
+            let currentRadius = target.radius;
+            
+            // Shrinking targets get smaller over time
+            if (target.type === TARGET_TYPES.SHRINKING) {
+                currentRadius = target.radius * (0.5 + (timeRatio * 0.5));
+            } else {
+                // Normal targets pulse slightly
+                currentRadius = target.radius * (0.9 + (Math.sin(elapsedTime / 200) * 0.1));
+            }
+            
+            // Draw target based on type
+            ctx.beginPath();
+            
+            if (target.type === TARGET_TYPES.BONUS) {
+                // Draw star shape for bonus targets
+                const spikes = 5;
+                const outerRadius = currentRadius;
+                const innerRadius = currentRadius * 0.4;
+                
+                ctx.beginPath();
+                for (let i = 0; i < spikes * 2; i++) {
+                    const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                    const angle = (Math.PI * i) / spikes - Math.PI / 2;
+                    const x = target.x + radius * Math.cos(angle);
+                    const y = target.y + radius * Math.sin(angle);
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.closePath();
+                ctx.fillStyle = target.color;
+                ctx.fill();
+            } else {
+                // Draw regular circle for other targets
+                ctx.arc(target.x, target.y, currentRadius, 0, Math.PI * 2);
+                ctx.fillStyle = target.color;
+                ctx.fill();
+            }
+            
+            // Draw time indicator
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, currentRadius, 0, Math.PI * 2 * timeRatio);
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Add a hint for moving targets
+            if (target.type === TARGET_TYPES.MOVING) {
+                const arrowSize = currentRadius * 0.3;
+                ctx.beginPath();
+                ctx.moveTo(target.x, target.y - arrowSize);
+                ctx.lineTo(target.x + arrowSize, target.y);
+                ctx.lineTo(target.x, target.y + arrowSize);
+                ctx.lineTo(target.x - arrowSize, target.y);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fill();
+            }
+            
+            // Add a hint for shrinking targets
+            if (target.type === TARGET_TYPES.SHRINKING) {
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, currentRadius * 0.6, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        });
+        
+        // Draw power-ups
+        powerUps.forEach(powerUp => {
+            if (powerUp.hit) return; // Skip hit power-ups
+            
+            const elapsedTime = now - powerUp.createdAt;
+            const pulseScale = 1 + 0.1 * Math.sin(elapsedTime / 200);
+            const currentRadius = powerUp.radius * pulseScale;
+            
+            // Draw circle
+            ctx.beginPath();
+            ctx.arc(powerUp.x, powerUp.y, currentRadius, 0, Math.PI * 2);
+            ctx.fillStyle = powerUp.color;
+            ctx.fill();
+            
+            // Draw outline
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw icon
+            ctx.font = `${currentRadius}px Arial`;
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(powerUp.icon, powerUp.x, powerUp.y);
+            
+            // Draw time indicator
+            const timeRatio = 1 - (elapsedTime / powerUp.lifetime);
+            ctx.beginPath();
+            ctx.arc(powerUp.x, powerUp.y, currentRadius + 5, 0, Math.PI * 2 * timeRatio);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        });
+    }
+    
     // Main game loop
     function gameLoop(timestamp) {
         const deltaTime = timestamp - lastTimestamp;
         lastTimestamp = timestamp;
         
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Debug information
+        if (targets.length === 0) {
+            console.log("No targets to draw");
+        }
         
         // Check if power-ups have expired
         if (activePowerUps.doublePoints.active && timestamp > activePowerUps.doublePoints.endTime) {
@@ -649,7 +838,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (powerUpIcon) powerUpIcon.remove();
         }
         
-        // Update and draw targets
+        // Update and remove expired targets
         for (let i = targets.length - 1; i >= 0; i--) {
             const target = targets[i];
             const elapsedTime = timestamp - target.createdAt;
@@ -681,147 +870,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     target.velocityY *= -1;
                 }
             }
-            
-            // Draw target
-            if (!target.hit) {
-                // Calculate size based on remaining time and type
-                let timeRatio = 1 - (elapsedTime / target.lifetime);
-                let currentRadius = target.radius;
-                
-                // Shrinking targets get smaller over time
-                if (target.type === TARGET_TYPES.SHRINKING) {
-                    currentRadius = target.radius * (0.5 + (timeRatio * 0.5));
-                } else {
-                    // Normal targets pulse slightly
-                    currentRadius = target.radius * (0.9 + (Math.sin(elapsedTime / 200) * 0.1));
-                }
-                
-                // Draw target based on type
-                ctx.beginPath();
-                
-                if (target.type === TARGET_TYPES.BONUS) {
-                    // Draw star shape for bonus targets
-                    const spikes = 5;
-                    const outerRadius = currentRadius;
-                    const innerRadius = currentRadius * 0.4;
-                    
-                    ctx.beginPath();
-                    for (let i = 0; i < spikes * 2; i++) {
-                        const radius = i % 2 === 0 ? outerRadius : innerRadius;
-                        const angle = (Math.PI * i) / spikes - Math.PI / 2;
-                        const x = target.x + radius * Math.cos(angle);
-                        const y = target.y + radius * Math.sin(angle);
-                        
-                        if (i === 0) {
-                            ctx.moveTo(x, y);
-                        } else {
-                            ctx.lineTo(x, y);
-                        }
-                    }
-                    ctx.closePath();
-                    ctx.fillStyle = target.color;
-                    ctx.fill();
-                } else {
-                    // Draw regular circle for other targets
-                    ctx.arc(target.x, target.y, currentRadius, 0, Math.PI * 2);
-                    ctx.fillStyle = target.color;
-                    ctx.fill();
-                }
-                
-                // Draw time indicator
-                ctx.beginPath();
-                ctx.arc(target.x, target.y, currentRadius, 0, Math.PI * 2 * timeRatio);
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                
-                // Add a hint for moving targets
-                if (target.type === TARGET_TYPES.MOVING) {
-                    const arrowSize = currentRadius * 0.3;
-                    ctx.beginPath();
-                    ctx.moveTo(target.x, target.y - arrowSize);
-                    ctx.lineTo(target.x + arrowSize, target.y);
-                    ctx.lineTo(target.x, target.y + arrowSize);
-                    ctx.lineTo(target.x - arrowSize, target.y);
-                    ctx.closePath();
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                    ctx.fill();
-                }
-                
-                // Add a hint for shrinking targets
-                if (target.type === TARGET_TYPES.SHRINKING) {
-                    ctx.beginPath();
-                    ctx.arc(target.x, target.y, currentRadius * 0.6, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                }
-            } else {
-                // Draw explosion animation for hit targets
-                const explosionProgress = (elapsedTime - (target.lifetime - target.lifetime * (elapsedTime / target.lifetime))) / 200;
-                
-                if (explosionProgress < 1) {
-                    ctx.beginPath();
-                    ctx.arc(target.x, target.y, target.radius * (1 + explosionProgress), 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 255, 255, ${1 - explosionProgress})`;
-                    ctx.fill();
-                }
+        }
+        
+        // Remove expired power-ups
+        for (let i = powerUps.length - 1; i >= 0; i--) {
+            const powerUp = powerUps[i];
+            if (timestamp - powerUp.createdAt >= powerUp.lifetime && !powerUp.hit) {
+                powerUps.splice(i, 1);
             }
         }
         
-        // Update and draw power-ups
-        for (let i = powerUps.length - 1; i >= 0; i--) {
-            const powerUp = powerUps[i];
-            const elapsedTime = timestamp - powerUp.createdAt;
-            
-            // Check if power-up timed out
-            if (elapsedTime >= powerUp.lifetime && !powerUp.hit) {
-                powerUps.splice(i, 1);
-                continue;
-            }
-            
-            // Draw power-up
-            if (!powerUp.hit) {
-                // Calculate pulse effect
-                const pulseScale = 1 + 0.1 * Math.sin(elapsedTime / 200);
-                const currentRadius = powerUp.radius * pulseScale;
-                
-                // Draw circle
-                ctx.beginPath();
-                ctx.arc(powerUp.x, powerUp.y, currentRadius, 0, Math.PI * 2);
-                ctx.fillStyle = powerUp.color;
-                ctx.fill();
-                
-                // Draw outline
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
-                // Draw icon
-                ctx.font = `${currentRadius}px Arial`;
-                ctx.fillStyle = 'white';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(powerUp.icon, powerUp.x, powerUp.y);
-                
-                // Draw time indicator
-                const timeRatio = 1 - (elapsedTime / powerUp.lifetime);
-                ctx.beginPath();
-                ctx.arc(powerUp.x, powerUp.y, currentRadius + 5, 0, Math.PI * 2 * timeRatio);
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-            } else {
-                // Draw collection animation
-                const collectProgress = elapsedTime / 200;
-                if (collectProgress < 1) {
-                    ctx.beginPath();
-                    ctx.arc(powerUp.x, powerUp.y, powerUp.radius * (1 + collectProgress), 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 255, 255, ${1 - collectProgress})`;
-                    ctx.fill();
-                }
-            }
-        }
+        // Draw all game elements
+        drawGameElements();
         
         // Continue the game loop
         if (gameActive) {
